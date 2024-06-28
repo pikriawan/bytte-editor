@@ -13,8 +13,8 @@ async function createServer() {
     io.attach(server);
 
     const vite = await createViteServer({
-	    server: { middlewareMode: true },
-	    appType: "custom"
+        server: { middlewareMode: true },
+        appType: "custom"
     });
 
     app.use(vite.middlewares);
