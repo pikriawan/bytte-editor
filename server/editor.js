@@ -1,6 +1,6 @@
 import FileWatcher from "./file-watcher.js";
 
-class Editor {
+export default class Editor {
     /**
      * @type {Object}
      */
@@ -13,6 +13,16 @@ class Editor {
 
     constructor(socket) {
         this.socket = socket;
+
+        this.watchFile = this.watchFile.bind(this);
+        this.unwatchFile = this.unwatchFile.bind(this);
+        this.destroy = this.destroy.bind(this);
+
+        this.socket.on("watchFile", this.watchFile);
+        this.socket.on("unwatchFile", this.unwatchFile);
+        this.socket.on("disconnect", this.destroy);
+
+        this.destroy = this.destroy.bind(this);
     }
 
     /**
@@ -46,6 +56,11 @@ class Editor {
         });
 
         this.fileWatchers = null;
+
+        this.socket.removeListener("watchFile", this.watchFile);
+        this.socket.removeListener("unwatchFile", this.unwatchFile);
+        this.socket.removeListener("disconnect", this.destroy);
+
         this.socket = null;
     }
 }
