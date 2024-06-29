@@ -1,10 +1,10 @@
 import { Server } from "socket.io";
-import Editor from "./editor.js";
+import Client from "./client.js";
 
 const io = new Server();
 
 io.on("connection", (socket) => {
-    const editor = new Editor(socket);
+    const client = new Client(socket);
 });
 
 export default io;

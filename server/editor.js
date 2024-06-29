@@ -1,66 +1,132 @@
-import FileWatcher from "./file-watcher.js";
+import fs from "node:fs";
+import Watcher from "watcher";
 
 export default class Editor {
     /**
      * @type {Object}
      */
-    socket;
+    client;
 
     /**
-     * @type {Map}
+     * @type {string}
      */
-    fileWatchers = new Map();
+    path;
 
-    constructor(socket) {
-        this.socket = socket;
+    /**
+     * @type {Object}
+     */
+    watcher;
 
-        this.watchFile = this.watchFile.bind(this);
-        this.unwatchFile = this.unwatchFile.bind(this);
-        this.destroy = this.destroy.bind(this);
+    /**
+     * @type {Object[]}
+     */
+    updates = [];
 
-        this.socket.on("watchFile", this.watchFile);
-        this.socket.on("unwatchFile", this.unwatchFile);
-        this.socket.on("disconnect", this.destroy);
+    constructor(client, path) {
+        this.client = client;
+        this.path = path;
 
-        this.destroy = this.destroy.bind(this);
+        this.onPush = this.onPush.bind(this);
+
+        this.onChange = this.onChange.bind(this);
+        this.onUnlink = this.onUnlink.bind(this);
     }
 
     /**
-     * @param {string} filePath
-     * @returns {undefined}
+     * @returns {Object}
      */
-    watchFile(filePath) {
-        const fileWatcher = new FileWatcher(this, filePath);
-        fileWatcher.watchFile();
-        this.fileWatchers.set(filePath, fileWatcher);
+    getLatestUpdate() {
+        return this.updates.at(-1);
     }
 
     /**
-     * @param {string} filePath
+     * @returns {string}
+     */
+    read() {
+        return fs.readFileSync(this.path, "utf-8");
+    }
+
+    /**
      * @returns {undefined}
      */
-    unwatchFile(filePath) {
-        const fileWatcher = this.fileWatchers.get(filePath);
-        fileWatcher.unwatchFile();
-        fileWatcher.destroy();
-        this.fileWatchers.delete(filePath);
+    write() {
+        fs.writeFileSync(this.path, this.getLatestUpdate().data);
+    }
+
+    /**
+     * @param {string} data
+     * @returns {undefined}
+     */
+    onPush(data) {
+        this.updates.push({
+            version: this.getLatestUpdate().version + 1,
+            data
+        });
+
+        this.write();
+    }
+
+    /**
+     * @returns {undefined}
+     */
+    onChange() {
+        if (this.read() !== this.getLatestUpdate().data) {
+            this.updates.push({
+                version: this.getLatestUpdate().version + 1,
+                data: this.read()
+            });
+        }
+
+        this.client.socket.emit("pull", this.path, this.getLatestUpdate());
+    }
+
+    /**
+     * @returns {undefined}
+     */
+    onUnlink() {
+        this.client.socket.emit("unlink", this.path);
+
+        this.unwatch();
+        this.destroy();
+    }
+
+    /**
+     * @returns {undefined}
+     */
+    watch() {
+        this.watcher = new Watcher(this.path, {
+            ignoreInitial: true
+        });
+
+        this.updates.push({
+            version: 0,
+            data: this.read()
+        });
+
+        this.client.socket.emit("pull", this.path, this.getLatestUpdate());
+
+        this.client.socket.on("push", this.onPush);
+
+        this.watcher.on("change", this.onChange);
+        this.watcher.on("unlink", this.onUnlink);
+    }
+
+    /**
+     * @returns {undefined}
+     */
+    unwatch() {
+        this.watcher.close();
     }
 
     /**
      * @returns {undefined}
      */
     destroy() {
-        this.fileWatchers.forEach((fileWatcher) => {
-            fileWatcher.unwatchFile();
-            fileWatcher.destroy();
-        });
+        this.client.socket.removeListener("push", this.onPush);
 
-        this.fileWatchers = null;
-
-        this.socket.removeListener("watchFile", this.watchFile);
-        this.socket.removeListener("unwatchFile", this.unwatchFile);
-        this.socket.removeListener("disconnect", this.destroy);
-
-        this.socket = null;
+        this.client = null;
+        this.path = null;
+        this.watcher = null;
+        this.updates = null;
     }
 }
