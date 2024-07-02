@@ -50,6 +50,7 @@ export default class Editor {
      * @returns {undefined}
      */
     write() {
+        console.log("write");
         fs.writeFileSync(this.path, this.getLatestUpdate().data);
     }
 
@@ -57,7 +58,11 @@ export default class Editor {
      * @param {string} data
      * @returns {undefined}
      */
-    onPush(data) {
+    onPush(path, data) {
+        if (path !== this.path) {
+            return;
+        }
+
         this.updates.push({
             version: this.getLatestUpdate().version + 1,
             data
@@ -86,7 +91,6 @@ export default class Editor {
     onUnlink() {
         this.client.socket.emit("unlink", this.path);
 
-        this.unwatch();
         this.destroy();
     }
 
@@ -122,11 +126,7 @@ export default class Editor {
      * @returns {undefined}
      */
     destroy() {
+        this.unwatch();
         this.client.socket.removeListener("push", this.onPush);
-
-        this.client = null;
-        this.path = null;
-        this.watcher = null;
-        this.updates = null;
     }
 }

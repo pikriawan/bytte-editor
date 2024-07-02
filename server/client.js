@@ -39,7 +39,6 @@ export default class Client {
      */
     unwatch(path) {
         const editor = this.editors.get(path);
-        editor.unwatch();
         editor.destroy();
         this.editors.delete(path);
     }
@@ -49,16 +48,11 @@ export default class Client {
      */
     destroy() {
         this.editors.forEach((editor) => {
-            editor.unwatch();
             editor.destroy();
         });
-
-        this.editors = null;
 
         this.socket.removeListener("watch", this.watch);
         this.socket.removeListener("unwatch", this.unwatch);
         this.socket.removeListener("disconnect", this.destroy);
-
-        this.socket = null;
     }
 }
