@@ -113,6 +113,8 @@ export default class Editor {
      * @returns {undefined}
      */
     destroy() {
+        clearTimeout(this.debounce);
+
         this.socket.emit("unwatch", this.path);
         this.socket.off("pull", this.onPull);
 
