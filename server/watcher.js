@@ -35,16 +35,16 @@ export default class Watcher {
             ignoreInitial: true
         });
 
-        this.onChange = this.onChange.bind(this);
-        this.onUnlink = this.onUnlink.bind(this);
         this.onPull = this.onPull.bind(this);
         this.onPush = this.onPush.bind(this);
-
-        this.watcher.on("change", this.onChange);
-        this.watcher.on("unlink", this.onUnlink);
+        this.onChange = this.onChange.bind(this);
+        this.onUnlink = this.onUnlink.bind(this);
 
         this.socket.on("pull", this.onPull);
         this.socket.on("push", this.onPush);
+
+        this.watcher.on("change", this.onChange);
+        this.watcher.on("unlink", this.onUnlink);
     }
 
     /**
