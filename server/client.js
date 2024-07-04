@@ -1,3 +1,5 @@
+import Watcher from "./watcher.js";
+
 export default class Client {
     /**
      * @type {Object}
