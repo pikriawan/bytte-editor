@@ -31,6 +31,11 @@ export default class Watcher {
         this.path = path;
         this.updates = [];
 
+        this.updates.push({
+            version: 0,
+            data: read()
+        });
+
         this.watcher = new W(this.path, {
             ignoreInitial: true
         });
