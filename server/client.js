@@ -1,5 +1,3 @@
-import Editor from "./editor.js";
-
 export default class Client {
     /**
      * @type {Object}
@@ -9,50 +7,50 @@ export default class Client {
     /**
      * @type {Map}
      */
-    editors = new Map();
+    watchers;
 
+    /**
+     * @param {Object} socket
+     */
     constructor(socket) {
         this.socket = socket;
+        this.watchers = new Map();
 
-        this.watch = this.watch.bind(this);
-        this.unwatch = this.unwatch.bind(this);
-        this.destroy = this.destroy.bind(this);
+        this.onWatch = this.onWatch.bind(this);
+        this.onUnwatch = this.onUnwatch.bind(this);
+        this.onDisconnect = this.onDisconnect.bind(this);
 
-        this.socket.on("watch", this.watch);
-        this.socket.on("unwatch", this.unwatch);
-        this.socket.on("disconnect", this.destroy);
+        this.socket.on("watch", this.onWatch);
+        this.socket.on("unwatch", this.onUnwatch);
+        this.socket.on("disconnect", this.onDisconnect);
     }
 
     /**
      * @param {string} path
      * @returns {undefined}
      */
-    watch(path) {
-        const editor = new Editor(this, path);
-        editor.watch();
-        this.editors.set(path, editor);
+    onWatch(path) {
+        const watcher = new Watcher(this.socket, path);
+        watcher.watch();
+        this.watchers.set(path, watcher);
     }
 
     /**
      * @param {string} path
      * @returns {undefined}
      */
-    unwatch(path) {
-        const editor = this.editors.get(path);
-        editor.destroy();
-        this.editors.delete(path);
+    onUnwatch(path) {
+        const watcher = this.watchers.get(path);
+        watcher.unwatch();
+        this.watchers.delete(path);
     }
 
     /**
      * @returns {undefined}
      */
-    destroy() {
-        this.editors.forEach((editor) => {
-            editor.destroy();
-        });
-
-        this.socket.removeListener("watch", this.watch);
-        this.socket.removeListener("unwatch", this.unwatch);
-        this.socket.removeListener("disconnect", this.destroy);
+    onDisconnect() {
+        this.socket.removeListener("watch", this.onWatch);
+        this.socket.removeListener("unwatch", this.onUnwatch);
+        this.socket.removeListener("disconnect", this.onDisconnect);
     }
 }

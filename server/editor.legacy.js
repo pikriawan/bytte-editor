@@ -26,8 +26,8 @@ export default class Editor {
         this.client = client;
         this.path = path;
 
+        this.onPull = this.onPull.bind(this);
         this.onPush = this.onPush.bind(this);
-
         this.onChange = this.onChange.bind(this);
         this.onUnlink = this.onUnlink.bind(this);
     }
@@ -50,8 +50,21 @@ export default class Editor {
      * @returns {undefined}
      */
     write() {
-        console.log("write");
         fs.writeFileSync(this.path, this.getLatestUpdate().data);
+    }
+
+    /**
+     * @param {string} path
+     * @returns {undefined}
+     */
+    onPull(path) {
+        if (path !== this.path) {
+            return;
+        }
+
+        console.log("pulling into client...");
+
+        this.client.socket.emit("pull", this.path, this.getLatestUpdate());
     }
 
     /**
@@ -109,6 +122,7 @@ export default class Editor {
 
         this.client.socket.emit("pull", this.path, this.getLatestUpdate());
 
+        this.client.socket.on("pullrequest", this.onPull);
         this.client.socket.on("push", this.onPush);
 
         this.watcher.on("change", this.onChange);
@@ -127,6 +141,8 @@ export default class Editor {
      */
     destroy() {
         this.unwatch();
+
+        this.client.socket.removeListener("pullrequest", this.onPull);
         this.client.socket.removeListener("push", this.onPush);
     }
 }

@@ -9,7 +9,7 @@ $form.onsubmit = (event) => {
 
     const formData = new FormData(event.target);
     const path = formData.get("path");
-    new Editor(socket, document.body, path));
+    new Editor(socket, document.body, path);
 
     event.target.reset();
 }
@@ -22,3 +22,13 @@ $submit.textContent = "Open folder";
 
 $form.append($input, $submit);
 document.body.append($form);
+
+const $connect = document.createElement("button");
+$connect.textContent = "Connect";
+$connect.onclick = () => socket.connect();
+
+const $disconnect = document.createElement("button");
+$disconnect.textContent = "Disconnect";
+$disconnect.onclick = () => socket.disconnect();
+
+document.body.append($connect, $disconnect);
