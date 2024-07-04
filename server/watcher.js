@@ -31,25 +31,20 @@ export default class Watcher {
         this.path = path;
         this.updates = [];
 
+        this.watcher = new W(this.path, {
+            ignoreInitial: true
+        });
+
         this.onChange = this.onChange.bind(this);
         this.onUnlink = this.onUnlink.bind(this);
         this.onPull = this.onPull.bind(this);
         this.onPush = this.onPush.bind(this);
 
-        this.socket.on("pull", this.onPull);
-        this.socket.on("push", this.onPush);
-    }
-
-    /**
-     * @returns {undefined}
-     */
-    watch() {
-        this.watcher = new W(this.path, {
-            ignoreInitial: true
-        });
-
         this.watcher.on("change", this.onChange);
         this.watcher.on("unlink", this.onUnlink);
+
+        this.socket.on("pull", this.onPull);
+        this.socket.on("push", this.onPush);
     }
 
     /**

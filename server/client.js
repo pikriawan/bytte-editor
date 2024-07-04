@@ -31,7 +31,6 @@ export default class Client {
      */
     onWatch(path) {
         const watcher = new Watcher(this.socket, path);
-        watcher.watch();
         this.watchers.set(path, watcher);
     }
 
@@ -41,7 +40,7 @@ export default class Client {
      */
     onUnwatch(path) {
         const watcher = this.watchers.get(path);
-        watcher.unwatch();
+        watcher.destroy();
         this.watchers.delete(path);
     }
 
