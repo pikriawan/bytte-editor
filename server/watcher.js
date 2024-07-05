@@ -33,7 +33,7 @@ export default class Watcher {
 
         this.updates.push({
             version: 0,
-            data: read()
+            data: this.read()
         });
 
         this.watcher = new W(this.path, {
@@ -94,7 +94,7 @@ export default class Watcher {
             });
         }
 
-        this.socket.emit("change", this.path, this.getLatestUpdate());
+        this.socket.emit("pull", this.path, this.getLatestUpdate());
     }
 
     /**
@@ -107,7 +107,11 @@ export default class Watcher {
     /**
      * @returns {undefined}
      */
-    onPull() {
+    onPull(path) {
+        if (path !== this.path) {
+            return;
+        }
+
         this.socket.emit("pull", this.path, this.getLatestUpdate());
     }
 

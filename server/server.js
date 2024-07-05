@@ -21,7 +21,7 @@ async function createServer() {
 
     app.use(express.static(path.resolve(__dirname, "../client")));
 
-    server.listen(3000);
+    server.listen(3000, "0.0.0.0");
 }
 
 createServer();
