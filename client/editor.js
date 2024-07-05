@@ -79,24 +79,7 @@ export default class Editor {
         this.socket.off("disconnect", this.onDisconnect);
 
         this.$.remove();
-    }
-
-    /**
-     * @returns {undefined}
-     */
-    onConnect() {
-        console.log("connected");
-
-        this.socket.emit("watch", this.path);
-        this.socket.emit("pull", this.path);
-    }
-
-    /**
-     * @returns {undefined}
-     */
-    onDisconnect() {
-        console.log("disconnected");
-    }
+    } 
 
     /**
      * @returns {Object}
@@ -145,5 +128,22 @@ export default class Editor {
 
         this.updates.push(update);
         this.$.value = update.data;
+    }
+
+    /**
+     * @returns {undefined}
+     */
+    onConnect() {
+        console.log("connected");
+
+        this.socket.emit("watch", this.path);
+        this.socket.emit("pull", this.path);
+    }
+
+    /**
+     * @returns {undefined}
+     */
+    onDisconnect() {
+        console.log("disconnected");
     }
 }
