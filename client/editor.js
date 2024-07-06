@@ -1,3 +1,7 @@
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { diffChars } from "diff";
+
 export default class Editor {
     /**
      * @type {Object}
@@ -18,6 +22,16 @@ export default class Editor {
      * @type {Object[]}
      */
     updates;
+
+    /**
+     * @type {Object}
+     */
+    state;
+
+    /**
+     * @type {Object}
+     */
+    view;
 
     /**
      * @type {number}
@@ -46,7 +60,6 @@ export default class Editor {
         this.socket.emit("pull", this.path);
 
         this.destroy = this.destroy.bind(this);
-        this.onInput = this.onInput.bind(this);
         this.onPull = this.onPull.bind(this);
         this.onConnect = this.onConnect.bind(this);
         this.onDisconnect = this.onDisconnect.bind(this);
@@ -55,17 +68,20 @@ export default class Editor {
         this.socket.on("connect", this.onConnect);
         this.socket.on("disconnect", this.onDisconnect)
 
-        this.$ = document.createElement("div");
+        this.state = EditorState.create({
+            extensions: [
+                EditorView.updateListener.of((viewUpdate) => {
+                    if (viewUpdate.docChanged) {
+                        this.onInput(viewUpdate.state.doc.toString());
+                    }
+                })
+            ]
+        });
 
-        this.$editor = document.createElement("textarea");
-        this.$editor.addEventListener("input", this.onInput);
-
-        this.$destroy = document.createElement("button");
-        this.$destroy.textContent = "Destroy";
-        this.$destroy.addEventListener("click", this.destroy);
-
-        this.$.append(this.$editor, this.$destroy);
-        this.$parent.append(this.$);
+        this.view = new EditorView({
+            state: this.state,
+            parent: this.$parent
+        });
     }
 
     /**
@@ -85,15 +101,16 @@ export default class Editor {
      * @returns {Object}
      */
     getLatestUpdate() {
-        return this.updates.at(-1) || { version: 0 };
+        return this.updates.at(-1) || {
+            version: 0,
+            data: ""
+        };
     }
 
     /**
      * @returns {undefined}
      */
     push(data) {
-        console.log(data);
-
         this.updates.push({
             version: this.getLatestUpdate().version + 1,
             data
@@ -103,13 +120,46 @@ export default class Editor {
     }
 
     /**
-     * @param {Event} event
+     * @param {string} oldText
+     * @param {string} newText
+     * @returns {Object[]}
+     */
+    diffCharsToChangeSpec(oldText, newText) {
+        console.log("oldText: ", oldText);
+        console.log("newText: ", newText);
+
+        const diff = diffChars(oldText, newText);
+        const changes = [];
+        let pos = 0;
+
+        for (const part of diff) {
+            if (part.added) {
+                changes.push({
+                    from: pos,
+                    insert: part.value
+                });
+                pos += part.count
+            } else if (part.removed) {
+                changes.push({
+                    from: pos,
+                    to: pos + part.count
+                });
+            } else {
+                pos += part.count;
+            }
+        }
+
+        return changes;
+    }
+
+    /**
+     * @param {string} data
      * @returns {undefined}
      */
-    onInput(event) {
+    onInput(data) {
         clearInterval(this.debounce);
 
-        this.debounce = setTimeout(() => this.push(event.target.value), this.debounceDelay);
+        this.debounce = setTimeout(() => this.push(data), this.debounceDelay);
     }
 
     /**
@@ -126,8 +176,13 @@ export default class Editor {
             return;
         }
 
+        const changeSpec = this.diffCharsToChangeSpec(this.getLatestUpdate().data, update.data);
+
+        for (const changes of changeSpec) {
+            this.view.dispatch({ changes });
+        }
+
         this.updates.push(update);
-        this.$.value = update.data;
     }
 
     /**
