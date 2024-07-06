@@ -94,7 +94,7 @@ export default class Editor {
         this.socket.off("connect", this.onConnect);
         this.socket.off("disconnect", this.onDisconnect);
 
-        this.$.remove();
+        this.view.destroy();
     } 
 
     /**
